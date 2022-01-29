@@ -1,0 +1,22 @@
+version: "3.5"
+services:
+
+  pyetlapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pyetlapp:1.0
+    container_name: pyetlapp
+    hostname: pyetlapp
+    networks:
+      eth0:
+        ipv4_address: 192.168.43.2
+
+networks:
+  eth0:
+    name: eth0
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.43.0/26

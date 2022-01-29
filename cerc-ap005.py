@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 import os
 import csv
 import datetime
@@ -7,8 +10,10 @@ import pyarrow
 import pyarrow.parquet as pq
 import s3fs
 
+
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s %(levelname)s %(name)s] %(message)s')
 logger = logging.getLogger(__name__)
+
 
 def parquet_file_writer(data_lake_credentials, parquet_filename, data):
     try:
@@ -78,7 +83,7 @@ def parquet_file_writer(data_lake_credentials, parquet_filename, data):
     except Exception as e:
         logger.critical(e)
 
-        
+
 def csv_file_reader(data_source_credentials, csv_filename, data_lake_credentials, data_lake_bucket):
     
     def set_str(value):
@@ -125,7 +130,7 @@ def csv_file_reader(data_source_credentials, csv_filename, data_lake_credentials
         
     def set_data_modificacao_arquivo(value):
         if value:
-            return int(value['LastModified'].timestamp() * 1000)
+            return int(value.timestamp() * 1000)
         else:
             None
     
@@ -214,7 +219,7 @@ def csv_file_reader(data_source_credentials, csv_filename, data_lake_credentials
         _nome_arquivo = set_str(csv_filename)
         _identificacao_processo_carga_arquivo = set_int(1)
         _data_envio_arquivo = set_data_envio_arquivo(csv_filename)
-        _data_modificacao_arquivo = set_data_modificacao_arquivo(s3_data_source.info(csv_filename))
+        _data_modificacao_arquivo = set_data_modificacao_arquivo(s3_data_source.info(csv_filename)['LastModified'])
 
         file = s3_data_source.open(csv_filename, 'rb')
         while True:
@@ -343,27 +348,71 @@ def csv_file_reader(data_source_credentials, csv_filename, data_lake_credentials
                 break
     except Exception as e:
         logger.critical(e)
+
         
-################################## PARA RODAR LOCAL UM ARQUIVO POR VEZ ##################################
+def main(data_source_credentials, data_source_bucket, data_lake_credentials, data_lake_bucket):
+    
+    ######################################################################################
+    # A funçao foi escrita para processar um arquivo por vez. O motivo é que inicialmente
+    # ela seria rodada no aws lambda portanto o paralelismo ficaria a cargo do mesmo
+    ######################################################################################
+    try:
+        s3_data_source = s3fs.S3FileSystem(
+            anon=False,
+            key=data_source_credentials['access_key_id'],
+            secret=data_source_credentials['secret_access_key']
+        )
+
+        csv_files = []
+        #############################################################################################
+        # Aqui é preciso entender qual a regra para criaçao dos caminhos onde são garavados os
+        # arquivos da cerc-ap005 para desenhar a mesma lógica para captura dos arquivos postados
+        # com data de modificação igual a data de hoje.
+        files = s3_data_source.glob('{0}/**/**/{1}/{2}/CERC-AP005_*.csv'.format(
+            data_source_bucket,
+            datetime.datetime.utcnow().date().strftime('%Y'),
+            datetime.datetime.utcnow().date().strftime('%m')
+        ))
+        #############################################################################################
+        for file in files:
+            if s3_data_source.info(file)['LastModified'].date() == datetime.datetime.utcnow().date():
+                csv_files.append(file)
+
+        if csv_files:
+            for csv_filename in csv_files:
+                csv_file_reader(
+                    data_source_credentials,
+                    csv_filename,
+                    data_lake_credentials,
+                    data_lake_bucket
+                )
+                logger.info(f'O arquivo {csv_filename} foi processado com sucesso.')
+        else:
+            logger.warning('Não foram encontrados arquivos para serem processados!')
+    except Exception as e:
+        logger.critical(e)
+
+
 if __name__ == '__main__':
 
     data_source_credentials = {
-        'access_key_id': 'XXXXXXXXXXXXXX',
-        'secret_access_key': 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+        'access_key_id': 'xxxxxxxxxxxxxxxxxxxx',
+        'secret_access_key': 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'
     }
 
     data_lake_credentials = {
-        'access_key_id': 'XXXXXXXXXXXXXX',
-        'secret_access_key': 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+        'access_key_id': 'xxxxxxxxxxxxxxxxxxxx',
+        'secret_access_key': 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'
     }
 
-    csv_filename = 'production-project001/CERC-AP005_23399607_20220112_0000001.csv'
+    data_source_bucket = 'production-project001'
 
     data_lake_bucket = 'data-lake-project001'
 
-    csv_file_reader(
+    main(
         data_source_credentials,
-        csv_filename,
+        data_source_bucket,
         data_lake_credentials,
         data_lake_bucket
     )
+
