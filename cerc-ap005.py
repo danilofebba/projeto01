@@ -309,7 +309,7 @@ def csv_file_reader(data_source_credentials, csv_filename, data_lake_credentials
                             csv_filename.split('_')[2][:4],
                             csv_filename.split('_')[2][4:6],
                             csv_filename.split('_')[2][6:],
-                            os.path.splitext(os.path.basename(csv_filename))[0],
+                            os.path.splitext(os.path.basename(csv_filename))[0].lower(),
                             str(p).rjust(4, '0'),
                             'parquet'
                         ),
@@ -396,13 +396,13 @@ def main(data_source_credentials, data_source_bucket, data_lake_credentials, dat
 if __name__ == '__main__':
 
     data_source_credentials = {
-        'access_key_id': 'xxxxxxxxxxxxxxxxxxxx',
-        'secret_access_key': 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'
+        'access_key_id': 'xxxxxxxxxxxxxx',
+        'secret_access_key': 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'
     }
 
     data_lake_credentials = {
-        'access_key_id': 'xxxxxxxxxxxxxxxxxxxx',
-        'secret_access_key': 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'
+        'access_key_id': 'xxxxxxxxxxxxxx',
+        'secret_access_key': 'yyyyyyyyyyyyyyyyyyyyyyyyyyyyyy'
     }
 
     data_source_bucket = 'production-project001'
@@ -415,4 +415,3 @@ if __name__ == '__main__':
         data_lake_credentials,
         data_lake_bucket
     )
-
