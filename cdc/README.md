@@ -28,7 +28,7 @@ aws rds create-db-instance \
     --port 5432 \
     --db-name db01_prod_pj01 \
     --master-username admin_user \
-    --master-user-password "DbIg#*gOasX!" \
+    --master-user-password "********" \
     --publicly-accessible \
     --no-multi-az \
     --backup-retention-period 1 \
